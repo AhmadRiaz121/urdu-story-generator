@@ -1,0 +1,50 @@
+# Ignore Python cache
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+
+# Ignore virtual environments
+venv/
+ENV/
+env/
+
+# Ignore Jupyter notebook checkpoints
+.ipynb_checkpoints/
+*.ipynb_checkpoints
+
+# Ignore IDE files
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# Ignore OS files
+.DS_Store
+Thumbs.db
+
+# Ignore git
+.git/
+.gitignore
+
+# Ignore test datasets (keep only necessary files)
+scrapping/*.txt
+!scrapping/dataset_clean.txt
+
+# Ignore documentation
+README.md
+*.md
+
+# Ignore CI/CD files (not needed in image)
+.github/
+
+# Ignore large or unnecessary notebook files
+test.ipynb
+scrapping/scraping.ipynb
+BPE_Tokenizer_Training/tokenizer_training.ipynb
+Trigram-Model/trigram.ipynb
+
+# Ignore logs
+*.log

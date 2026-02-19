@@ -1,0 +1,23 @@
+version: '3.8'
+
+services:
+  urdu-trigram-api:
+    build:
+      context: ..
+      dockerfile: Phase_IV/Dockerfile
+    container_name: urdu-trigram-api
+    ports:
+      - "8000:8000"
+    volumes:
+      # Mount for development (optional - comment out for production)
+      - ./api:/app/api
+      - ../BPE_Tokenizer_Training:/app/BPE_Tokenizer_Training
+    environment:
+      - PYTHONUNBUFFERED=1
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s

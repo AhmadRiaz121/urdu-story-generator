@@ -1,0 +1,99 @@
+name: Docker Build and Deploy
+
+on:
+  push:
+    branches: [ main, master ]
+  pull_request:
+    branches: [ main, master ]
+  workflow_dispatch:
+
+jobs:
+  build-and-test:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+    
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.11'
+    
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install -r requirements.txt
+    
+    - name: Lint API code
+      run: |
+        pip install flake8
+        # Stop the build if there are Python syntax errors or undefined names
+        flake8 api/ --count --select=E9,F63,F7,F82 --show-source --statistics
+        # Exit-zero treats all errors as warnings
+        flake8 api/ --count --exit-zero --max-complexity=10 --max-line-length=127 --statistics
+      continue-on-error: true
+    
+    - name: Set up Docker Buildx
+      uses: docker/setup-buildx-action@v3
+    
+    - name: Build Docker image
+      run: |
+        docker build -t urdu-trigram-api:${{ github.sha }} .
+        docker tag urdu-trigram-api:${{ github.sha }} urdu-trigram-api:latest
+    
+    - name: Test Docker image
+      run: |
+        # Start container in background
+        docker run -d -p 8000:8000 --name test-api urdu-trigram-api:latest
+        
+        # Wait for container to be healthy
+        echo "Waiting for container to start..."
+        sleep 15
+        
+        # Check if container is running
+        docker ps -a
+        
+        # Test health endpoint
+        echo "Testing health endpoint..."
+        curl -f http://localhost:8000/health || exit 1
+        
+        # Test root endpoint
+        echo "Testing root endpoint..."
+        curl -f http://localhost:8000/ || exit 1
+        
+        # View container logs
+        echo "Container logs:"
+        docker logs test-api
+        
+        # Stop and remove container
+        docker stop test-api
+        docker rm test-api
+    
+    - name: Login to Docker Hub (optional)
+      if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+      uses: docker/login-action@v3
+      with:
+        username: ${{ secrets.DOCKER_USERNAME }}
+        password: ${{ secrets.DOCKER_PASSWORD }}
+      continue-on-error: true
+    
+    - name: Push to Docker Hub (optional)
+      if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+      run: |
+        docker tag urdu-trigram-api:latest ${{ secrets.DOCKER_USERNAME }}/urdu-trigram-api:latest
+        docker tag urdu-trigram-api:latest ${{ secrets.DOCKER_USERNAME }}/urdu-trigram-api:${{ github.sha }}
+        docker push ${{ secrets.DOCKER_USERNAME }}/urdu-trigram-api:latest
+        docker push ${{ secrets.DOCKER_USERNAME }}/urdu-trigram-api:${{ github.sha }}
+      continue-on-error: true
+    
+    - name: Save Docker image as artifact
+      run: |
+        docker save urdu-trigram-api:latest | gzip > urdu-trigram-api.tar.gz
+    
+    - name: Upload Docker image artifact
+      uses: actions/upload-artifact@v3
+      with:
+        name: docker-image
+        path: urdu-trigram-api.tar.gz
+        retention-days: 7
