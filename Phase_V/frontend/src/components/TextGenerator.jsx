@@ -26,7 +26,6 @@ function TextGenerator({ darkMode }) {
   }, [messages])
 
   useEffect(() => {
-    // Cleanup on unmount
     return () => {
       if (streamIntervalRef.current) {
         clearInterval(streamIntervalRef.current)
@@ -41,7 +40,6 @@ function TextGenerator({ darkMode }) {
     const words = fullText.split(' ').filter(word => word && word !== 'undefined' && word !== 'null')
     let currentIndex = 0
     
-    // Add initial empty AI message
     const aiMessage = {
       id: messageId,
       type: 'ai',
@@ -52,7 +50,6 @@ function TextGenerator({ darkMode }) {
     setMessages(prev => [...prev, aiMessage])
     setStreamingMessageId(messageId)
     
-    // Stream words one by one
     streamIntervalRef.current = setInterval(() => {
       if (currentIndex < words.length) {
         const word = words[currentIndex]
@@ -63,7 +60,6 @@ function TextGenerator({ darkMode }) {
         ))
         currentIndex++
       } else {
-        // Streaming complete
         clearInterval(streamIntervalRef.current)
         setMessages(prev => prev.map(msg => 
           msg.id === messageId 
@@ -72,7 +68,7 @@ function TextGenerator({ darkMode }) {
         ))
         setStreamingMessageId(null)
       }
-    }, 50) // 50ms between words for smooth ChatGPT-like effect
+    }, 50)
   }
 
   const handleGenerate = async () => {
@@ -81,17 +77,15 @@ function TextGenerator({ darkMode }) {
     setError(null)
     setIsGenerating(true)
     
-    // Add user message
     const userMessage = {
       id: Date.now(),
       type: 'user',
-      content: prefix.trim() || 'متن بنائیں',
+      content: prefix.trim() || 'کہانی سنائیں! 📖',
       timestamp: new Date()
     }
     
     setMessages(prev => [...prev, userMessage])
     
-    // Create abort controller for cancellation
     abortControllerRef.current = new AbortController()
     
     try {
@@ -107,35 +101,32 @@ function TextGenerator({ darkMode }) {
         }
       )
       
-      // Clean and validate the received text
       const generatedTextData = response.data.generated_text
       
       if (generatedTextData && typeof generatedTextData === 'string') {
         const cleanText = String(generatedTextData).replace(/undefined/g, '').replace(/null/g, '').trim()
         
         if (cleanText) {
-          // Stream the AI message word by word
           const aiMessageId = Date.now() + 1
           streamText(cleanText, aiMessageId)
         } else {
-          setError('خرابی: خالی جواب موصول ہوا')
+          setError('اوہو! خالی جواب آیا 😅')
         }
       } else {
-        setError('خرابی: سرور سے غلط جواب موصول ہوا')
+        setError('کچھ غلط ہو گیا! دوبارہ کوشش کریں 🔄')
       }
       
-      // Clear input after successful generation
       setPrefix('')
       
     } catch (err) {
       if (err.name === 'CanceledError') {
-        setError('تخلیق منسوخ کر دی گئی')
+        setError('کہانی بنانا روک دیا گیا 🛑')
       } else if (err.response) {
-        setError(`خرابی: ${err.response.data.detail || err.message}`)
+        setError(`اوہو! ${err.response.data.detail || err.message} 😵`)
       } else if (err.request) {
-        setError('سرور سے رابطہ نہیں ہو سکا۔ براہ کرم یقینی بنائیں کہ API چل رہا ہے۔')
+        setError('سرور سے بات نہیں ہو پا رہی 📡 دوبارہ کوشش کریں!')
       } else {
-        setError(`خرابی: ${err.message}`)
+        setError(`خرابی: ${err.message} 😢`)
       }
     } finally {
       setIsGenerating(false)
@@ -159,15 +150,19 @@ function TextGenerator({ darkMode }) {
   }
 
   return (
-    <div className="chat-container">
-      <div className="chat-header">
+    <div className="chat-container kids-chat">
+      <div className="chat-header kids-header">
         <div className="header-title">
-          <h1>Urdu Text Generator</h1>
-          <span className="status-indicator">●</span>
+          <span className="header-mascot">🧙‍♂️</span>
+          <div>
+            <h1>کہانی ساز جادوگر</h1>
+            <span className="header-subtitle">آپ کی کہانی بنانے کو تیار!</span>
+          </div>
+          <span className="status-indicator kids-status">●</span>
         </div>
         <div className="header-actions">
           <button 
-            className="icon-btn"
+            className="icon-btn kids-icon-btn"
             onClick={() => setShowSettings(!showSettings)}
             title="Settings"
             disabled={isGenerating || streamingMessageId !== null}
@@ -176,23 +171,23 @@ function TextGenerator({ darkMode }) {
           </button>
           {messages.length > 0 && (
             <button 
-              className="icon-btn"
+              className="icon-btn kids-icon-btn"
               onClick={handleClearChat}
               title="Clear Chat"
               disabled={isGenerating || streamingMessageId !== null}
             >
-              🗑️
+              🧹
             </button>
           )}
         </div>
       </div>
 
       {showSettings && (
-        <div className="settings-panel">
+        <div className="settings-panel kids-settings">
           <div className="setting-item">
             <label>
-              <span>Maximum Length</span>
-              <span className="setting-value">{maxLength}</span>
+              <span>📏 کہانی کی لمبائی</span>
+              <span className="setting-value kids-value">{maxLength}</span>
             </label>
             <input
               type="range"
@@ -201,12 +196,13 @@ function TextGenerator({ darkMode }) {
               step="10"
               value={maxLength}
               onChange={(e) => setMaxLength(e.target.value)}
+              className="kids-range"
             />
           </div>
           <div className="setting-item">
             <label>
-              <span>Temperature</span>
-              <span className="setting-value">{temperature}</span>
+              <span>🎨 تخلیقی پن</span>
+              <span className="setting-value kids-value">{temperature}</span>
             </label>
             <input
               type="range"
@@ -215,55 +211,72 @@ function TextGenerator({ darkMode }) {
               step="0.1"
               value={temperature}
               onChange={(e) => setTemperature(e.target.value)}
+              className="kids-range"
             />
           </div>
         </div>
       )}
 
-      <div className="messages-container">
+      <div className="messages-container kids-messages">
         {messages.length === 0 && !error && (
-          <div className="empty-chat">
-            <div className="empty-icon">🌙</div>
-            <h2>اردو متن جنریٹر</h2>
-            <p>AI-powered Urdu text generation using Trigram Model</p>
-            <div className="example-prompts">
-              <button onClick={() => setPrefix('ایک دن')} disabled={isGenerating || streamingMessageId !== null}>ایک دن</button>
-              <button onClick={() => setPrefix('بہت پہلے')} disabled={isGenerating || streamingMessageId !== null}>بہت پہلے</button>
-              <button onClick={() => setPrefix('ایک بار')} disabled={isGenerating || streamingMessageId !== null}>ایک بار</button>
+          <div className="empty-chat kids-empty">
+            <div className="empty-icon">📖</div>
+            <h2>کہانی سنانے کا وقت! 🎉</h2>
+            <p>نیچے لکھیں یا ایک مثال چنیں</p>
+            <div className="example-prompts kids-prompts">
+              <button onClick={() => setPrefix('ایک دن جنگل میں')} disabled={isGenerating || streamingMessageId !== null}>
+                🌳 ایک دن جنگل میں
+              </button>
+              <button onClick={() => setPrefix('ایک چھوٹا خرگوش')} disabled={isGenerating || streamingMessageId !== null}>
+                🐰 ایک چھوٹا خرگوش
+              </button>
+              <button onClick={() => setPrefix('بہت پہلے')} disabled={isGenerating || streamingMessageId !== null}>
+                ✨ بہت پہلے
+              </button>
+              <button onClick={() => setPrefix('ایک بار')} disabled={isGenerating || streamingMessageId !== null}>
+                📚 ایک بار
+              </button>
+              <button onClick={() => setPrefix('ایک شہزادی')} disabled={isGenerating || streamingMessageId !== null}>
+                👸 ایک شہزادی
+              </button>
+              <button onClick={() => setPrefix('چالاک لومڑی')} disabled={isGenerating || streamingMessageId !== null}>
+                🦊 چالاک لومڑی
+              </button>
             </div>
           </div>
         )}
 
         {messages.map(message => (
-          <div key={message.id} className={`message ${message.type}`}>
-            <div className="message-avatar">
-              {message.type === 'user' ? '👤' : '🤖'}
+          <div key={message.id} className={`message kids-message ${message.type}`}>
+            <div className="message-avatar kids-avatar">
+              {message.type === 'user' ? '👦' : '🧙‍♂️'}
             </div>
-            <div className="message-content">
+            <div className="message-content kids-msg-content">
               <div className="message-text" dir="rtl">
                 {message.content}
-                {message.isStreaming && <span className="streaming-cursor">▊</span>}
+                {message.isStreaming && <span className="streaming-cursor kids-cursor">▊</span>}
               </div>
             </div>
           </div>
         ))}
 
         {isGenerating && (
-          <div className="message ai">
-            <div className="message-avatar">🤖</div>
-            <div className="message-content">
-              <div className="typing-indicator">
+          <div className="message kids-message ai">
+            <div className="message-avatar kids-avatar">🧙‍♂️</div>
+            <div className="message-content kids-msg-content">
+              <div className="typing-indicator kids-typing">
                 <span></span>
                 <span></span>
                 <span></span>
               </div>
+              <span className="typing-label">جادو ہو رہا ہے... ✨</span>
             </div>
           </div>
         )}
 
         {error && (
-          <div className="error-message">
-            <span>⚠️</span>
+          <div className="error-message kids-error">
+            <span>😅</span>
             {error}
           </div>
         )}
@@ -271,24 +284,24 @@ function TextGenerator({ darkMode }) {
         <div ref={messagesEndRef} />
       </div>
 
-      <div className="input-container">
-        <div className="input-wrapper">
+      <div className="input-container kids-input-container">
+        <div className="input-wrapper kids-input-wrapper">
           <textarea
-            className="chat-input"
+            className="chat-input kids-chat-input"
             value={prefix}
             onChange={(e) => setPrefix(e.target.value)}
             onKeyPress={handleKeyPress}
-            placeholder="اردو میں لکھیں یا خالی چھوڑیں... (Enter to send)"
+            placeholder="یہاں اپنی کہانی شروع کریں... 🌟"
             dir="rtl"
             rows="1"
             disabled={isGenerating || streamingMessageId !== null}
           />
           <button
-            className="send-btn"
+            className="send-btn kids-send-btn"
             onClick={handleGenerate}
             disabled={isGenerating || streamingMessageId !== null}
           >
-            {isGenerating ? '⏳' : '↑'}
+            {isGenerating ? '⏳' : '🪄'}
           </button>
         </div>
       </div>
